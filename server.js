@@ -3,7 +3,6 @@ const cors = require('cors');
 
 const app = express();
 
-// Fix CORS — allow all origins
 app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'OPTIONS'],
@@ -13,7 +12,7 @@ app.use(cors({
 app.options('*', cors());
 app.use(express.json());
 
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || 'YOUR_API_KEY_HERE';
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'YOUR_GEMINI_KEY_HERE';
 
 const typePrompts = {
   linkedin: 'Write a compelling LinkedIn post',
@@ -45,29 +44,27 @@ Requirements:
 - Do not add any meta-commentary, just output the content directly`;
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [{ role: 'user', content: prompt }]
-      })
-    });
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { maxOutputTokens: 1000 }
+        })
+      }
+    );
 
     const data = await response.json();
-    console.log('Anthropic response status:', response.status);
+    console.log('Gemini response status:', response.status);
 
     if (data.error) {
-      console.error('Anthropic error:', data.error);
+      console.error('Gemini error:', data.error);
       return res.status(500).json({ error: data.error.message });
     }
 
-    const text = data.content?.find(b => b.type === 'text')?.text || '';
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
     res.json({ result: text });
 
   } catch (err) {
