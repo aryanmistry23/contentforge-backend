@@ -2,10 +2,17 @@ const express = require('express');
 const cors = require('cors');
 
 const app = express();
-app.use(cors());
+
+// Fix CORS — allow all origins
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+app.options('*', cors());
 app.use(express.json());
 
-// Your Anthropic API key goes here
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || 'YOUR_API_KEY_HERE';
 
 const typePrompts = {
@@ -53,8 +60,10 @@ Requirements:
     });
 
     const data = await response.json();
+    console.log('Anthropic response status:', response.status);
 
     if (data.error) {
+      console.error('Anthropic error:', data.error);
       return res.status(500).json({ error: data.error.message });
     }
 
@@ -62,12 +71,12 @@ Requirements:
     res.json({ result: text });
 
   } catch (err) {
-    console.error(err);
+    console.error('Server error:', err);
     res.status(500).json({ error: 'Generation failed. Please try again.' });
   }
 });
 
-app.get('/health', (req, res) => res.json({ status: 'ok' }));
+app.get('/health', (req, res) => res.json({ status: 'ok', time: new Date().toISOString() }));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`ContentForge backend running on port ${PORT}`));
